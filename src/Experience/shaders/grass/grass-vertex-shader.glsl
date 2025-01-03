@@ -141,8 +141,19 @@ void main() {
   vec3 grassBladeWorldPos = (modelMatrix * vec4(grassOffset, 1.0)).xyz;
   vec3 hashVal = hash(grassBladeWorldPos);
 
+  float grassType = saturate(hashVal.z) > 0.975 ? 1.0 : 0.0;
+
   // Grass rotation
   float angle = remap(hashVal.x, -1.0, 1.0, -PI, PI);
+
+  vec4 tileData = texture2D(
+    tileDataTexture,
+    vec2(-grassBladeWorldPos.x, grassBladeWorldPos.z) / GRASS_PATCH_SIZE * 0.5 + 0.5);
+
+  // Stiffness
+  float stiffness = 1.0;
+  float tileGrassHeight = 1.0 - tileData.x;
+  // float tileGrassHeight = mix(1.0, 1.5, grassType) * remap(hashVal.x, -1.0, 1.0, 0.5, 1.0);
 
   // Debug
   // grassOffset = vec3(float(gl_InstanceID) * 0.5 - 8.0, 0.0, 0.0);
@@ -159,9 +170,9 @@ void main() {
   float zSide = float(zTest);
   float heightPercent = float(vertID - xTest) / (float(GRASS_SEGMENTS) * 2.0);
 
-  float width = GRASS_WIDTH * easeOut(1.0 - heightPercent, 4.0);
+  float width = GRASS_WIDTH * easeOut(1.0 - heightPercent, 4.0) * tileGrassHeight;
   // float width = GRASS_WIDTH * smoothstep(0.0, 0.25, 1.0 - heightPercent);
-  float height = GRASS_HEIGHT;
+  float height = GRASS_HEIGHT * tileGrassHeight;
 
   // Calculate the vertex position
   float x = (xSide - 0.5) * width;
@@ -172,13 +183,16 @@ void main() {
   float windStrength = noise(vec3(grassBladeWorldPos.xz * 0.05, 0.0) + time);
   float windAngle = 0.0;
   vec3 windAxis = vec3(cos(windAngle), 0.0, sin(windAngle));
-  float windLeanAngle = windStrength * 1.5 * heightPercent; // * stiffness;
+  float windLeanAngle = windStrength * 1.5 * heightPercent * stiffness;
 
   // Grass lean factor
-  // float randomLeanAnimation = sin(time * 2.0 + hashVal.y) * 0.025;
   float randomLeanAnimation = noise(vec3(grassBladeWorldPos.xz, time * 4.0)) * (windStrength * 0.5 + 0.125);
   // randomLeanAnimation = 0.0;
-  // float randomLeanAnimation = noise(vec3(grassBladeWorldPos.xz, time * 4.0)) * (windStrength * 0.5 + 0.125);
+ 
+  // randomLeanAnimation = 0.0;
+  // windStrength = 0.0;
+  // windLeanAngle = 0.0;
+
   float leanFactor = remap(hashVal.y, -1.0, 1.0, -0.5, 0.5) + randomLeanAnimation;
 
   // Debug
@@ -224,10 +238,12 @@ void main() {
   // gl_Position = projectionMatrix * modelViewMatrix * vec4(
   //     grassLocalPosition, 1.0);
   gl_Position = projectionMatrix * mvPosition;
+  gl_Position.w = tileGrassHeight < 0.25 ? 0.0 : gl_Position.w;
 
   // vColour = grassLocalNormal;
 
   vColour = mix(BASE_COLOUR, TIP_COLOUR, heightPercent);
+  vColour = mix(vec3(1.0, 0.0, 0.0), vColour, stiffness) * 1.0;
   // vColour = vec3(viewSpaceThickenFactor);
 
   // vec3 c1 = mix(BASE_COLOUR, TIP_COLOUR, heightPercent);

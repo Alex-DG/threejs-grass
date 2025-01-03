@@ -24,6 +24,7 @@ class Experience {
 
     this.scene = new THREE.Scene()
     this.clock = new THREE.Clock()
+    this.textureLoader = new THREE.TextureLoader()
     this.container = options.domElement
 
     // Arrow function so we don't need manual binding
@@ -162,7 +163,7 @@ class Experience {
 
   // Make ground
   async setGround() {
-    const diffuseTexture = new THREE.TextureLoader().load('./textures/grid.png')
+    const diffuseTexture = await this.textureLoader.loadAsync('./textures/grid.png')
     diffuseTexture.wrapS = THREE.RepeatWrapping
     diffuseTexture.wrapT = THREE.RepeatWrapping
 
@@ -179,17 +180,22 @@ class Experience {
     const geometry = new THREE.PlaneGeometry(1, 1, 512, 512)
     const plane = new THREE.Mesh(geometry, groundMat)
     plane.rotateX(-Math.PI / 2)
-    plane.scale.setScalar(10)
+    plane.scale.setScalar(1000)
     this.scene.add(plane)
     this.materials.push(groundMat)
 
     console.log('🔨', 'Ground built!')
   }
 
-  setGrass() {
+  async setGrass() {
+    const tileDataTexture = await this.textureLoader.loadAsync('./textures/ijc_logo_texture_3.JPG')
+
     const uniforms = {
       grassParams: {
         value: new THREE.Vector4(GRASS_SEGMENTS, GRASS_PATCH_SIZE, GRASS_WIDTH, GRASS_HEIGHT),
+      },
+      tileDataTexture: {
+        value: tileDataTexture,
       },
       time: { value: 0 },
       resolution: { value: new THREE.Vector2(1, 1) },
