@@ -20,6 +20,10 @@ float saturate(float x) {
   return clamp(x, 0.0, 1.0);
 }
 
+float easeOut(float x, float t) {
+	return 1.0 - pow(1.0 - x, t);
+}
+
 vec3 lambertLight(vec3 normal, vec3 viewDir, vec3 lightDir, vec3 lightColour) {
   float wrap = 0.5;
   float dotNL = saturate((dot(normal, lightDir) + wrap) / (1.0 + wrap));
@@ -38,8 +42,22 @@ vec3 hemiLight(vec3 normal, vec3 groundColour, vec3 skyColour) {
   return mix(groundColour, skyColour, 0.5 * normal.y + 0.5);
 }
 
+vec3 phongSpecular(vec3 normal, vec3 lightDir, vec3 viewDir) {
+  float dotNL = saturate(dot(normal, lightDir));
+  
+  vec3 r = normalize(reflect(-lightDir, normal));
+  float phongValue = max(0.0, dot(viewDir, r));
+  phongValue = pow(phongValue, 32.0);
+
+  vec3 specular = dotNL * vec3(phongValue);
+
+  return specular;
+}
+
 void main() {
   float grassX = vGrassData.x;
+  float grassY = vGrassData.y;
+  float grassType = vGrassData.w;
 
   vec3 normal = normalize(vNormal);
   vec3 viewDir = normalize(cameraPosition - vWorldPosition);
@@ -58,11 +76,19 @@ void main() {
   vec3 lightColour = vec3(1.0);
   vec3 diffuseLighting = lambertLight(normal, viewDir, lightDir, lightColour);
 
+  // Specular
+  vec3 specular = phongSpecular(normal, lightDir, viewDir); // * easeOut(grassY, 4.0);
+
+  // Fake AO
+  float ao = remap(pow(grassY, 2.0), 0.0, 1.0, 0.0625, 1.0);
+ 
   vec3 lighting = diffuseLighting * 0.5 + ambientLighting * 0.5;
   
-  vec3 colour = baseColour * ambientLighting;
+  vec3 colour = baseColour * ambientLighting + specular * 0.25;
+  colour *= ao * 1.0;
 
   // colour = lighting;
+  // colour = vColour;
 
   gl_FragColor = vec4(pow(colour, vec3(1.0 / 2.2)), 1.0);
 }

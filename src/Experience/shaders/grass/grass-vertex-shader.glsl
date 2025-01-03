@@ -209,12 +209,26 @@ void main() {
   grassLocalNormal = mix(grassLocalNormal, vec3(0.0, 1.0, 0.0), distanceBlend * 0.5);
   grassLocalNormal = normalize(grassLocalNormal);
 
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(
-      grassLocalPosition, 1.0);
+    // Viewspace thicken
+  vec4 mvPosition = modelViewMatrix * vec4(grassLocalPosition, 1.0);
+
+  vec3 viewDir = normalize(cameraPosition - grassBladeWorldPos);
+  vec3 grassFaceNormal = (grassMat * vec3(0.0, 0.0, -zSide));
+
+  float viewDotNormal = saturate(dot(grassFaceNormal, viewDir));
+  float viewSpaceThickenFactor = easeOut(
+      1.0 - viewDotNormal, 5.0) * smoothstep(0.0, 0.2, viewDotNormal);
+
+  mvPosition.x += viewSpaceThickenFactor * (xSide - 0.5) * width * 0.5 * -zSide;
+
+  // gl_Position = projectionMatrix * modelViewMatrix * vec4(
+  //     grassLocalPosition, 1.0);
+  gl_Position = projectionMatrix * mvPosition;
 
   // vColour = grassLocalNormal;
 
   vColour = mix(BASE_COLOUR, TIP_COLOUR, heightPercent);
+  // vColour = vec3(viewSpaceThickenFactor);
 
   // vec3 c1 = mix(BASE_COLOUR, TIP_COLOUR, heightPercent);
   // vec3 c2 = mix(vec3(0.6, 0.6, 0.4), vec3(0.88, 0.87, 0.52), heightPercent);
@@ -224,5 +238,5 @@ void main() {
   vNormal = normalize((modelMatrix * vec4(grassLocalNormal, 0.0)).xyz);
   vWorldPosition = (modelMatrix * vec4(grassLocalPosition, 1.0)).xyz;
 
-  vGrassData = vec4(x, 0.0, 0.0, 0.0);
+  vGrassData = vec4(x, heightPercent, 0.0, 0.0);
 }

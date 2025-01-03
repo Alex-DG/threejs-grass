@@ -10,7 +10,7 @@ import fragmentGround from './shaders/ground/ground-fragment-shader.glsl'
 import vertexGrass from './shaders/grass/grass-vertex-shader.glsl'
 import fragmentGrass from './shaders/grass/grass-fragment-shader.glsl'
 
-const NUM_GRASS = 16 * 1024
+const NUM_GRASS = 32 * 1024
 const GRASS_SEGMENTS = 6
 const GRASS_VERTICES = (GRASS_SEGMENTS + 1) * 2
 const GRASS_PATCH_SIZE = 25
