@@ -122,6 +122,10 @@ vec2 hash21(float src) {
   return uintBitsToFloat(h & 0x007fffffu | 0x3f800000u) - 1.0;
 }
 
+vec3 terrainHeight(vec3 worldPos) {
+  return vec3(worldPos.x, noise(worldPos * 0.02) * 10.0, worldPos.z);
+}
+
 const vec3 BASE_COLOUR = vec3(0.1, 0.4, 0.04);
 const vec3 TIP_COLOUR = vec3(0.5, 0.7, 0.3);
 
@@ -138,10 +142,12 @@ void main() {
   vec2 hashedInstanceID = hash21(float(gl_InstanceID)) * 2.0 - 1.;
   vec3 grassOffset = vec3(hashedInstanceID.x, 0.0, hashedInstanceID.y) * GRASS_PATCH_SIZE;  
   
+  // grassOffset = terrainHeight(grassOffset); // Comment-out to remove the terrain height effect
+
   vec3 grassBladeWorldPos = (modelMatrix * vec4(grassOffset, 1.0)).xyz;
   vec3 hashVal = hash(grassBladeWorldPos);
 
-  float grassType = saturate(hashVal.z) > 0.975 ? 1.0 : 0.0;
+  float grassType = saturate(hashVal.z) > 0.875 ? 1.0 : 0.0;
 
   // Grass rotation
   float angle = remap(hashVal.x, -1.0, 1.0, -PI, PI);
@@ -151,9 +157,10 @@ void main() {
     vec2(-grassBladeWorldPos.x, grassBladeWorldPos.z) / GRASS_PATCH_SIZE * 0.5 + 0.5);
 
   // Stiffness
-  float stiffness = 1.0;
-  float tileGrassHeight = 1.0 - tileData.x;
-  // float tileGrassHeight = mix(1.0, 1.5, grassType) * remap(hashVal.x, -1.0, 1.0, 0.5, 1.0);
+  float stiffness = 1.2;
+  // float tileGrassHeight = 1.0 - tileData.x;
+  float tileGrassHeight = (1.0 - tileData.x) *  mix(1.0, 1.5, grassType) * remap(hashVal.x, -1.0, 1.0, 0.5, 1.0);
+  
 
   // Debug
   // grassOffset = vec3(float(gl_InstanceID) * 0.5 - 8.0, 0.0, 0.0);
@@ -170,9 +177,16 @@ void main() {
   float zSide = float(zTest);
   float heightPercent = float(vertID - xTest) / (float(GRASS_SEGMENTS) * 2.0);
 
-  float width = GRASS_WIDTH * easeOut(1.0 - heightPercent, 4.0) * tileGrassHeight;
-  // float width = GRASS_WIDTH * smoothstep(0.0, 0.25, 1.0 - heightPercent);
+  float width = GRASS_WIDTH * 6.5; // * easeOut(1.0 - heightPercent, 4.0) * tileGrassHeight;
+  // float width = GRASS_WIDTH  * easeOut(1.0 - heightPercent, 4.0) * (tileGrassHeight * 1.0);
+  // float width = GRASS_WIDTH * easeOut(1.0 - heightPercent, 4.0) * tileGrassHeight;
+
   float height = GRASS_HEIGHT * tileGrassHeight;
+
+  if (grassType == 1.0) {
+    width *= 1.35;
+  } 
+
 
   // Calculate the vertex position
   float x = (xSide - 0.5) * width;
@@ -254,5 +268,5 @@ void main() {
   vNormal = normalize((modelMatrix * vec4(grassLocalNormal, 0.0)).xyz);
   vWorldPosition = (modelMatrix * vec4(grassLocalPosition, 1.0)).xyz;
 
-  vGrassData = vec4(x, heightPercent, 0.0, 0.0);
+  vGrassData = vec4(x, heightPercent, xSide, grassType);
 }

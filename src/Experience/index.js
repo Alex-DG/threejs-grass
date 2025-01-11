@@ -9,6 +9,7 @@ import fragmentGround from './shaders/ground/ground-fragment-shader.glsl'
 
 import vertexGrass from './shaders/grass/grass-vertex-shader.glsl'
 import fragmentGrass from './shaders/grass/grass-fragment-shader.glsl'
+import TextureAtlas from './classes/TextureAtlas'
 
 const NUM_GRASS = 32 * 1024
 const GRASS_SEGMENTS = 6
@@ -197,8 +198,18 @@ class Experience {
       tileDataTexture: {
         value: tileDataTexture,
       },
+      grassDiffuse: {
+        value: null,
+      },
       time: { value: 0 },
       resolution: { value: new THREE.Vector2(1, 1) },
+      fadeRadius: { value: 26.0 },
+    }
+
+    const diffuse = new TextureAtlas()
+    diffuse.Load('diffuse', ['./textures/grass5.png', './textures/spiderlily2.png'])
+    diffuse.onLoad = () => {
+      uniforms.grassDiffuse.value = diffuse.Info['diffuse'].atlas
     }
 
     const grassMaterial = new THREE.ShaderMaterial({
@@ -206,6 +217,7 @@ class Experience {
       vertexShader: vertexGrass,
       fragmentShader: fragmentGrass,
       side: THREE.FrontSide,
+      transparent: true,
     })
 
     this.grassGeometry = this.createGeometry(GRASS_SEGMENTS)
@@ -243,7 +255,7 @@ class Experience {
     }
 
     const geo = new THREE.InstancedBufferGeometry()
-    geo.instanceCount = NUM_GRASS
+    geo.instanceCount = NUM_GRASS * 1
     geo.setIndex(indices)
     geo.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 0, 0), 1 + GRASS_PATCH_SIZE * 2)
 
